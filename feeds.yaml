@@ -1,0 +1,177 @@
+# Leeward feed list
+#
+# Each feed belongs to a category (defined in config.yaml). Add, remove, or set
+# `enabled: false` on anything; the next run picks up the change.
+#
+# Ways to add a feed:
+#   url: https://example.com/feed/           a normal RSS or Atom feed
+#   google_news: '"Some Topic" when:1d'      builds a Google News search feed for you
+#
+# Optional per-feed settings:
+#   max_items: 10      newest N items taken from this feed each run (runs are every 2 hours);
+#                      older ones from that run are skipped, which keeps busy feeds in check
+#   enabled: false     keep it in the list but skip it
+#
+# The health page (health.html) flags feeds that break, go quiet, or get mostly hidden.
+
+feeds:
+
+  # ---------------------------------------------------------------- sports
+  - name: Turf Show Times (Rams)
+    category: sports
+    url: https://www.turfshowtimes.com/rss/index.xml
+
+  - name: Rams (Google News)
+    category: sports
+    google_news: '"Los Angeles Rams" when:1d'
+    max_items: 12
+
+  - name: Dodgers (MLB.com)
+    category: sports
+    url: https://www.mlb.com/dodgers/feeds/news/rss.xml
+
+  - name: True Blue LA (Dodgers)
+    category: sports
+    url: https://www.truebluela.com/rss/index.xml
+
+  - name: SLC Dunk (Jazz)
+    category: sports
+    url: https://www.slcdunk.com/rss/index.xml
+
+  - name: Utah Jazz (Google News)
+    category: sports
+    google_news: '"Utah Jazz" when:1d'
+    max_items: 10
+
+  - name: Utah Mammoth (Google News)
+    category: sports
+    google_news: '"Utah Mammoth" when:1d'
+    max_items: 10
+
+  - name: NFL league news (Google News)
+    category: sports
+    google_news: 'NFL when:1d'
+    max_items: 10
+    enabled: false   # off by default; league-wide news is where most of the junk lives
+
+  # ---------------------------------------------------------------- news
+  # Straight news, no paywalls. Filtered by the dial.
+  - name: NPR News
+    category: news
+    url: https://feeds.npr.org/1001/rss.xml
+
+  - name: PBS News
+    category: news
+    url: https://www.pbs.org/newshour/feeds/rss/headlines
+
+  - name: AP News (Google News)
+    category: news
+    google_news: 'site:apnews.com when:1d'
+    max_items: 20
+
+  - name: Utah local - KSL (Google News)
+    category: news
+    google_news: 'site:ksl.com when:1d'
+    max_items: 10
+
+  # ---------------------------------------------------------------- good news
+  - name: Good News Network
+    category: good_news
+    url: https://www.goodnewsnetwork.org/feed/
+
+  - name: Good News Network - Animals
+    category: good_news
+    url: https://www.goodnewsnetwork.org/category/news/animals/feed/
+
+  - name: Positive News
+    category: good_news
+    url: https://www.positive.news/feed/
+
+  - name: Reasons to be Cheerful
+    category: good_news
+    url: https://reasonstobecheerful.world/feed/
+
+  - name: The Optimist Daily
+    category: good_news
+    url: https://www.optimistdaily.com/feed/
+
+  - name: Uplifting News (Lemmy)
+    category: good_news
+    url: https://lemmy.world/feeds/c/upliftingnews.xml
+
+  - name: The Dodo (Google News)
+    category: good_news
+    google_news: 'site:thedodo.com when:3d'
+    max_items: 8
+
+  # ---------------------------------------------------------------- science and curiosities
+  - name: Quanta Magazine
+    category: science
+    url: https://www.quantamagazine.org/feed/
+
+  - name: Good News Network - Science
+    category: science
+    url: https://www.goodnewsnetwork.org/category/news/science/feed/
+
+  - name: ScienceDaily - Top Science
+    category: science
+    url: https://www.sciencedaily.com/rss/top/science.xml
+    max_items: 10
+
+  - name: Phys.org
+    category: science
+    url: https://phys.org/rss-feed/
+    max_items: 5     # very high volume; newest 5 per run is plenty
+
+  - name: Space.com
+    category: science
+    url: https://www.space.com/feeds/all
+    max_items: 5
+
+  - name: Atlas Obscura
+    category: science
+    url: https://www.atlasobscura.com/feeds/latest
+
+  - name: Smithsonian Magazine
+    category: science
+    url: https://www.smithsonianmag.com/rss/latest_articles/
+    max_items: 10
+
+  # ---------------------------------------------------------------- pictures
+  - name: NASA Astronomy Picture of the Day
+    category: pictures
+    url: https://apod.nasa.gov/apod.rss
+
+  - name: NASA Image of the Day
+    category: pictures
+    url: https://www.nasa.gov/feeds/iotd-feed/
+
+  - name: NASA Earth Observatory
+    category: pictures
+    url: https://science.nasa.gov/feed/?science_org=19791%2C22453
+
+  - name: Wikipedia Picture of the Day
+    category: pictures
+    url: https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=potd&feedformat=rss
+
+  - name: Colossal (art and photography)
+    category: pictures
+    url: https://www.thisiscolossal.com/feed/
+
+  - name: My Modern Met
+    category: pictures
+    url: https://mymodernmet.com/feed/
+    max_items: 10
+
+  - name: Bored Panda - Animals
+    category: pictures
+    url: https://www.boredpanda.com/animals/feed/
+    max_items: 10
+
+  - name: aww (Lemmy)
+    category: pictures
+    url: https://lemmy.world/feeds/c/aww.xml
+
+  - name: Eye Bleach (Lemmy)
+    category: pictures
+    url: https://lemmy.world/feeds/c/eyebleach.xml   # unverified; remove if the health page flags it

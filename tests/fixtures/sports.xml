@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Test Rams</title><link>https://example.com/rams</link><description>Rams</description>
+<item><title>Rams beat 49ers in overtime thriller</title><link>https://example.com/rams/1</link>
+<guid>rams-1</guid><pubDate>Mon, 23 Nov 2026 03:00:00 GMT</pubDate>
+<description>Matthew Stafford threw the winning touchdown.</description></item>
+<item><title>Rams lose star receiver to injury</title><link>https://example.com/rams/2</link>
+<guid>rams-2</guid><pubDate>Mon, 23 Nov 2026 04:00:00 GMT</pubDate>
+<description>He will miss several weeks.</description></item>
+<item><title>Rams vs Seahawks odds, picks and best bets</title><link>https://example.com/rams/3</link>
+<guid>rams-3</guid><pubDate>Mon, 23 Nov 2026 05:00:00 GMT</pubDate>
+<description>Our betting experts weigh in.</description></item>
+</channel>
+</rss>

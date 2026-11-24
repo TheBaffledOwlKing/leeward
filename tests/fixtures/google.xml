@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>"site:ksl.com" - Google News</title><link>https://news.google.com/</link><description>Google News</description>
+<item><title>City council approves new park - KSL.com</title><link>https://news.google.com/rss/articles/abc</link>
+<guid isPermaLink="false">g-1</guid><pubDate>Mon, 23 Nov 2026 10:00:00 GMT</pubDate>
+<description>&lt;a href="https://news.google.com/rss/articles/abc"&gt;City council approves new park&lt;/a&gt;&amp;nbsp;&amp;nbsp;&lt;font color="#6f6f6f"&gt;KSL.com&lt;/font&gt;</description>
+<source url="https://www.ksl.com">KSL.com</source></item>
+<item><title>Utah wildfire threatens homes near Park City - KSL.com</title><link>https://news.google.com/rss/articles/def</link>
+<guid isPermaLink="false">g-2</guid><pubDate>Mon, 23 Nov 2026 11:00:00 GMT</pubDate>
+<description>x</description><source url="https://www.ksl.com">KSL.com</source></item>
+</channel>
+</rss>

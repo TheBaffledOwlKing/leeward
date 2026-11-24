@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Test News</title><link>https://example.com/news</link><description>News</description>
+<item><title>Supreme Court overturns landmark ruling, sparking constitutional crisis</title>
+<link>https://example.com/news/1</link><guid>news-1</guid><pubDate>Mon, 23 Nov 2026 06:00:00 GMT</pubDate>
+<description>The decision reverses decades of precedent.</description></item>
+<item><title>Senator slams rival over budget</title><link>https://example.com/news/2</link>
+<guid>news-2</guid><pubDate>Mon, 23 Nov 2026 07:00:00 GMT</pubDate><description>Words were exchanged.</description></item>
+<item><title>Factory fire injures workers</title><link>https://example.com/news/3</link>
+<guid>news-3</guid><pubDate>Mon, 23 Nov 2026 08:00:00 GMT</pubDate><description>Crews responded quickly.</description></item>
+<item><title>City council approves new park</title><link>https://example.com/news/4</link>
+<guid>news-4</guid><pubDate>Mon, 23 Nov 2026 09:00:00 GMT</pubDate>
+<description>&lt;p&gt;The park will have &lt;b&gt;trails&lt;/b&gt; &amp;amp; a pond.&lt;/p&gt;&lt;img src="https://example.com/park.jpg"&gt;</description></item>
+<item><title>Old story from weeks ago</title><link>https://example.com/news/5</link>
+<guid>news-5</guid><pubDate>Tue, 10 Nov 2026 09:00:00 GMT</pubDate><description>Stale.</description></item>
+</channel>
+</rss>

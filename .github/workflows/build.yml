@@ -1,0 +1,68 @@
+name: Build feeds
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"   # every two hours (UTC), at 17 past to dodge the top-of-hour rush
+  workflow_dispatch:          # the "Run workflow" button on the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: leeward
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      # State (labels, seen items, source health) rides along in the Actions cache.
+      # If it's ever evicted, the next run simply relabels what's current: a few cents.
+      - uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: leeward-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: leeward-state-
+
+      - name: Build
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LEEWARD_BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: python -m leeward -v build
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: state
+          key: leeward-state-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - uses: actions/upload-pages-artifact@v3
+        if: always()
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    if: always() && needs.build.result != 'cancelled'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

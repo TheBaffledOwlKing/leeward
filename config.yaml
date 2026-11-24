@@ -1,0 +1,144 @@
+# Leeward settings. Edit freely; the next run picks up changes.
+
+site:
+  title: Leeward
+  timezone: America/Denver   # for the "updated" times on the pages
+  # Filled in automatically on GitHub Pages. Set it by hand only for local runs
+  # where you want absolute links in the OPML file.
+  base_url: ""
+
+model:
+  name: claude-haiku-5-5
+  batch_size: 25            # items per API call
+  # Used only for the cost estimate on the health page (USD per million tokens).
+  input_price_per_mtok: 0.10
+  output_price_per_mtok: 0.50
+  # Safety valve: stop labeling new items once this many are labeled in a calendar month.
+  # Normal use is a few hundred items a day, so this is far above what you should hit.
+  monthly_item_cap: 40000
+
+fetch:
+  timeout_seconds: 20
+  workers: 8
+  user_agent: "Leeward/0.1 (personal RSS filter)"
+
+window:
+  max_age_days: 3           # ignore source items older than this
+  keep_days: 2              # how long items stay in the output feeds
+
+# ------------------------------------------------------------------ the dial
+# Each run builds one digest per level (digest-0.xml ... digest-3.xml).
+# Subscribe to the levels you want and open whichever fits your day.
+#
+# Uplifting and neutral items always pass. The dial only decides which
+# NEGATIVE items get through, based on significance (0-5, scored by impact,
+# not by how upsetting a story is). Priority topics get a lower bar.
+dial:
+  default: 1                # level used for the per-category feeds, hidden page, and health stats
+  emergency_floor: 5        # significance at or above this always shows, even at level 0. Set to 6 to make level 0 a total shield.
+  levels:
+    0: { name: "Not today",  negative_min_significance: 6 }
+    1: { name: "Essentials", negative_min_significance: 4, priority_min_significance: 3 }
+    2: { name: "Informed",   negative_min_significance: 3, priority_min_significance: 2 }
+    3: { name: "Everything", negative_min_significance: 0 }
+
+# Topics that count as essential to you. Negative stories on these topics
+# get the lower "priority" bar above. Pick from the topic list below.
+priorities:
+  - democracy_elections
+  - civil_rights
+  - courts_law
+  - natural_disaster
+  - local_utah
+
+# ------------------------------------------------------------------ categories
+# mode: dial      negative items must clear the dial (good for news, science, pictures)
+# mode: pass_all  everything shows regardless of tone (your teams); blocked flags still apply
+# block_flags:    items with any of these flags are hidden in this category
+# max_items:      cap per category in each digest, so pictures and good news outnumber sports
+# untagged:       what to do with items the model hasn't labeled yet (hide or show)
+default_block_flags: [outrage_bait, conflict_callout, graphic_violence, celebrity_gossip, partisan_opinion, sponsored]
+
+categories:
+  sports:
+    label: Sports
+    mode: pass_all
+    block_flags: [betting_odds, sponsored]
+    max_items: 20
+    untagged: show
+    default_feed_items: 15
+  news:
+    label: News
+    mode: dial
+    max_items: 15
+    untagged: hide
+    default_feed_items: 15
+  good_news:
+    label: Good news
+    mode: dial
+    max_items: 30
+    untagged: hide
+    default_feed_items: 15
+  science:
+    label: Science and curiosities
+    mode: dial
+    max_items: 30
+    untagged: hide
+    default_feed_items: 15
+  pictures:
+    label: Pictures
+    mode: dial
+    max_items: 30
+    untagged: hide
+    default_feed_items: 15
+
+# ------------------------------------------------------------------ keyword overrides
+# Regular expressions matched against titles, case-insensitive.
+# block wins over everything; allow forces an item through the model's labels.
+keywords:
+  block: []
+  allow: []
+
+# Show the model's plain rewrite instead of a clickbait title (original kept in the item body).
+rewrite_titles: true
+
+# ------------------------------------------------------------------ labels the model uses
+# You can add topics; flags need a definition because the model reads it.
+topics:
+  - democracy_elections
+  - civil_rights
+  - courts_law
+  - politics_government
+  - economy_money
+  - jobs_work
+  - health_medicine
+  - science_discovery
+  - space
+  - environment_climate
+  - natural_disaster
+  - public_safety
+  - crime
+  - war_conflict
+  - international
+  - local_utah
+  - animals
+  - kindness_community
+  - arts_culture
+  - nature_photography
+  - technology
+  - history
+  - travel_places
+  - sports
+  - entertainment_celebrity
+  - other
+
+flags:
+  outrage_bait: "Framed mainly to provoke anger or fear rather than to inform."
+  clickbait: "Headline hides or exaggerates what the story actually is."
+  conflict_callout: "The main point is a person, creator, or group attacking, mocking, or 'exposing' another (feuds, drama, dunks)."
+  graphic_violence: "Detailed description of injury, death, abuse, or gore."
+  celebrity_gossip: "Celebrities' personal lives, relationships, feuds, or appearance."
+  partisan_opinion: "Opinion or commentary arguing for one political side, rather than straight reporting."
+  betting_odds: "Gambling odds, betting picks, sportsbook promotions, or fantasy projections."
+  sponsored: "Ads, deals, affiliate shopping posts, or paid content."
+  doom: "Emphasizes catastrophe or hopelessness beyond what the facts support."
