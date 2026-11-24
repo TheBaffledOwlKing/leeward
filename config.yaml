@@ -18,9 +18,11 @@ model:
   monthly_item_cap: 40000
 
 fetch:
-  timeout_seconds: 20
+  timeout_seconds: 30
   workers: 8
-  user_agent: "Leeward/0.1 (personal RSS filter)"
+  # An honest name for the fetcher. Sites that refuse automated requests show as
+  # "Blocked" on the health page; respect that and swap in another source.
+  user_agent: "Leeward/0.2 (personal RSS reader)"
 
 window:
   max_age_days: 3           # ignore source items older than this
@@ -36,6 +38,10 @@ window:
 dial:
   default: 1                # level used for the per-category feeds, hidden page, and health stats
   emergency_floor: 5        # significance at or above this always shows, even at level 0. Set to 6 to make level 0 a total shield.
+  # Section caps (max_items below) keep any one section from crowding the digest, but a story
+  # this significant or more is never cut by a cap. That's why the dial levels can show the
+  # same item count while holding different stories: the caps fill up either way.
+  always_include_significance: 4
   levels:
     0: { name: "Not today",  negative_min_significance: 6 }
     1: { name: "Essentials", negative_min_significance: 4, priority_min_significance: 3 }

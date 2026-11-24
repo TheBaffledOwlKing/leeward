@@ -28,14 +28,22 @@ def _cost(settings: Settings, usage: dict) -> float:
 
 
 def index_page(settings: Settings, outlines, report, usage: dict, now: datetime) -> str:
+    pass_all = [c.label for c in settings.categories.values() if c.mode == "pass_all"]
+    pass_note = (f' <span class="muted" style="font-size:.85em">(not counting {escape(", ".join(pass_all))})</span>'
+                 if pass_all else "")
     level_cards = []
     for lvl, level in settings.levels.items():
         path = f"feeds/digest-{lvl}.xml"
-        url = f"{settings.base_url}/{path}" if settings.base_url else path
+        summary = report.levels.get(lvl, {})
+        by_cat = summary.get("by_category", {})
+        breakdown = " · ".join(f"{escape(settings.categories[k].label)} {by_cat.get(k, 0)}"
+                               for k in settings.categories)
+        neg = summary.get("negative", 0)
         level_cards.append(
             f'<div class="card"><b>{lvl} · {escape(level.name)}</b>'
-            f'<span class="muted">{report.shown.get(lvl, 0)} items right now</span><br>'
-            f'<a href="{escape(path)}">feed</a> · <code>{escape(url)}</code></div>')
+            f'{summary.get("total", 0)} items, <b style="display:inline">{neg} negative</b>{pass_note}<br>'
+            f'<span class="muted" style="font-size:.85em">{breakdown}</span><br>'
+            f'<a href="{escape(path)}">feed</a></div>')
     section_cards = []
     for key, cat in settings.categories.items():
         path = f"feeds/{key}.xml"
@@ -48,7 +56,8 @@ def index_page(settings: Settings, outlines, report, usage: dict, now: datetime)
 
 <h2>Today's dial</h2>
 <p>Subscribe to the levels you want, each in its own folder in your reader, and open whichever fits the day.
-Uplifting and neutral items appear at every level; the dial only decides which negative stories get through.</p>
+Uplifting and neutral items appear at every level; the dial only decides which negative stories get through.
+Each section has a cap, so levels often hold the same <i>number</i> of items; what changes is how many of them are negative.</p>
 <div class="grid">{''.join(level_cards)}</div>
 
 <h2>Sections</h2>
@@ -57,7 +66,8 @@ Uplifting and neutral items appear at every level; the dial only decides which n
 
 <h2>Set up your reader</h2>
 <p><a href="subscriptions.opml">Download subscriptions.opml</a> and import it in FeedFlow (Settings, Import feeds),
-then delete the levels or sections you don't want.</p>
+then delete the levels or sections you don't want. Each level comes in its own folder. Browse by folder rather than
+the all-feeds timeline, since the same story can sit in several levels at once.</p>
 
 <h2>Behind the curtain</h2>
 <p><a href="hidden.html">Hidden drawer</a>: what got filtered at the default level and why.<br>
@@ -93,13 +103,33 @@ def hidden_page(settings: Settings, hidden: list[tuple[Item, Decision]], tags: d
     return page(f"{settings.title} · hidden", body)
 
 
-def source_status(src: dict, now: datetime) -> tuple[str, str]:
+def _why_nothing_new(src: dict, now: datetime, max_age_days: float) -> str:
+    lf = src.get("last_fetch") or {}
+    if not lf:
+        return "Reachable, but nothing new yet."
+    if lf.get("entries", 0) == 0:
+        return "Reachable, but the feed is empty."
+    if lf.get("duplicates") and not lf.get("added"):
+        others = ", ".join(lf.get("duplicate_of") or []) or "another feed"
+        return f"Reachable, but its stories are already coming in through {others}. Safe to remove."
+    if lf.get("too_old") == lf.get("entries") and lf.get("newest"):
+        age = (now - parse_iso(lf["newest"])).days
+        return (f"Reachable, but its newest item is {age} days old, past the {max_age_days:g}-day window. "
+                "It may be slow or inactive.")
+    return "Reachable, but nothing new yet."
+
+
+def source_status(src: dict, now: datetime, max_age_days: float = 3) -> tuple[str, str]:
     """(css class, message) describing a source's health."""
     fails = src.get("consecutive_failures", 0)
+    err = src.get("last_error", "")
+    if "refuses automated" in err:
+        return "bad", f"Blocked. {err}. Remove it or replace it with another source."
     if fails >= 3 or (fails and not src.get("last_ok")):
-        return "bad", f"Failing ({fails} run{'' if fails == 1 else 's'} in a row): {src.get('last_error', '')}"
+        return "bad", f"Failing ({fails} run{'' if fails == 1 else 's'} in a row): {err}"
     cutoff = (now - timedelta(days=HEALTH_WINDOW_DAYS)).date().isoformat()
     recent = [v for d, v in src.get("days", {}).items() if d >= cutoff]
+    new = sum(v.get("new", 0) for v in recent)
     kept = sum(v.get("kept", 0) for v in recent)
     hidden = sum(v.get("hidden", 0) for v in recent)
     last_new = src.get("last_new_item")
@@ -108,9 +138,9 @@ def source_status(src: dict, now: datetime) -> tuple[str, str]:
     if kept + hidden >= 10 and hidden / (kept + hidden) >= 0.7:
         return "warn", f"Mostly hidden ({hidden} of {kept + hidden}). Consider removing it."
     if fails:
-        return "warn", f"Failed last run: {src.get('last_error', '')}"
-    if not last_new and src.get("last_ok"):
-        return "warn", "Reachable, but nothing new yet."
+        return "warn", f"Failed last run: {err}"
+    if not new and src.get("last_ok"):
+        return "warn", _why_nothing_new(src, now, max_age_days)
     return "ok", "OK"
 
 
@@ -121,7 +151,7 @@ def health_page(settings: Settings, state, feeds: list[Feed], usage: dict, now: 
     table = []
     for feed in feeds:
         src = state.sources.get(feed.id, {})
-        css, msg = source_status(src, now)
+        css, msg = source_status(src, now, settings.max_age_days)
         recent = [v for d, v in src.get("days", {}).items() if d >= cutoff]
         new = sum(v.get("new", 0) for v in recent)
         kept = sum(v.get("kept", 0) for v in recent)

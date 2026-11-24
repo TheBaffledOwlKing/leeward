@@ -58,12 +58,15 @@ in plain words instead, with the original kept in the item body.
    currently in your feeds (a few hundred items, a few cents). After that it runs every two hours.
 
 5. **Subscribe.** Open `https://YOUR-USERNAME.github.io/leeward/`, download `subscriptions.opml`,
-   and import it in FeedFlow. It contains all four dial levels and the five sections; delete what you
-   don't want. Suggestion: put "0 Not today" and "1 Essentials" in separate FeedFlow categories and
-   open whichever fits the day. (If you subscribe to several levels in the same timeline, you'll see
-   duplicates, because the levels overlap.)
+   and import it in FeedFlow. Each dial level arrives in its own folder, plus a "Leeward sections"
+   folder; delete what you don't want. Pick today's level by opening its folder. Avoid the all-feeds
+   timeline: the levels overlap, so the same story can appear once per level you subscribe to.
+   Every feed uses its own item IDs on purpose; FeedFlow keeps only one copy of an article per ID,
+   so shared IDs would make a story show up in just one of your folders.
 
-6. **Check the health page** after a day. It flags feeds that are broken, quiet, or mostly hidden.
+6. **Check the health page** after a day. It flags feeds that are broken, quiet, mostly hidden, or
+   just duplicating another feed. Some sites refuse automated requests from GitHub's servers; those
+   show as "Blocked". Leeward doesn't try to get around that. Remove the feed or find another source.
 
 ## Testing on your own machine first (optional)
 

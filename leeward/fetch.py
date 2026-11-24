@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -36,14 +37,11 @@ def _parse(feed: Feed, content: bytes) -> FetchResult:
     return FetchResult(feed, "ok", entries=list(parsed.entries))
 
 
-def fetch_one(feed: Feed, client: httpx.Client, etag: str = "", modified: str = "") -> FetchResult:
-    if feed.url.startswith("file://"):
-        path = Path(url2pathname(urlparse(feed.url).path))
-        try:
-            return _parse(feed, path.read_bytes())
-        except OSError as exc:
-            return FetchResult(feed, "error", error=str(exc))
+TRANSIENT_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
+
+def _attempt(feed: Feed, client: httpx.Client, etag: str, modified: str) -> tuple[FetchResult, bool]:
+    """One request. Returns (result, worth_retrying)."""
     headers = {}
     if etag:
         headers["If-None-Match"] = etag
@@ -51,18 +49,44 @@ def fetch_one(feed: Feed, client: httpx.Client, etag: str = "", modified: str = 
         headers["If-Modified-Since"] = modified
     try:
         resp = client.get(feed.url, headers=headers)
+    except httpx.TimeoutException:
+        return FetchResult(feed, "error", error="Timed out"), True
     except httpx.HTTPError as exc:
-        return FetchResult(feed, "error", error=f"{type(exc).__name__}: {exc}"[:300])
+        return FetchResult(feed, "error", error=f"{type(exc).__name__}: {exc}"[:300]), True
 
     if resp.status_code == 304:
-        return FetchResult(feed, "not_modified", etag=etag, modified=modified)
+        return FetchResult(feed, "not_modified", etag=etag, modified=modified), False
+    if resp.status_code in (401, 403):
+        return FetchResult(feed, "error", error=f"HTTP {resp.status_code}: the site refuses automated "
+                                                 "requests from GitHub's servers"), False
     if resp.status_code >= 400:
-        return FetchResult(feed, "error", error=f"HTTP {resp.status_code}")
+        return FetchResult(feed, "error", error=f"HTTP {resp.status_code}"), resp.status_code in TRANSIENT_STATUS
 
     result = _parse(feed, resp.content)
     if result.status == "ok":
         result.etag = resp.headers.get("ETag", "")
         result.modified = resp.headers.get("Last-Modified", "")
+    return result, False
+
+
+def fetch_one(feed: Feed, client: httpx.Client, etag: str = "", modified: str = "",
+              retry_pause: float = 3.0) -> FetchResult:
+    """Fetch one feed, retrying once on temporary trouble (timeouts, rate limits,
+    server errors). A site that deliberately blocks us is reported, not retried."""
+    if feed.url.startswith("file://"):
+        path = Path(url2pathname(urlparse(feed.url).path))
+        try:
+            return _parse(feed, path.read_bytes())
+        except OSError as exc:
+            return FetchResult(feed, "error", error=str(exc))
+
+    result, retry = _attempt(feed, client, etag, modified)
+    if retry:
+        time.sleep(retry_pause)
+        second, _ = _attempt(feed, client, etag, modified)
+        if second.status == "error":
+            second.error = f"{result.error}, then again on retry: {second.error}"
+        return second
     return result
 
 

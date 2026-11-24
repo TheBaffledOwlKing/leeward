@@ -46,8 +46,14 @@ def item_body_html(item: Item, tags: dict | None, title_shown: str) -> str:
 
 
 def rss(title: str, description: str, link: str, self_url: str, entries: list[tuple[Item, dict | None, str]],
-        now: datetime) -> str:
-    """entries: (item, tags, title to show)."""
+        now: datetime, feed_key: str = "") -> str:
+    """entries: (item, tags, title to show).
+
+    feed_key makes every guid unique to this output feed. Readers like FeedFlow store
+    each article once by guid and ignore later copies, so the same story in two of our
+    feeds (say, digest-1 and the News section) must carry two different guids or it
+    only ever appears in whichever feed the reader happened to load first.
+    """
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" '
            'xmlns:atom="http://www.w3.org/2005/Atom">',
@@ -63,7 +69,8 @@ def rss(title: str, description: str, link: str, self_url: str, entries: list[tu
         out.append("<item>")
         out.append(f"<title>{_x(shown)}</title>")
         out.append(f"<link>{_x(item.link)}</link>")
-        out.append(f'<guid isPermaLink="false">{_x(item.id)}</guid>')
+        guid = f"{item.id}-{feed_key}" if feed_key else item.id
+        out.append(f'<guid isPermaLink="false">{_x(guid)}</guid>')
         out.append(f"<pubDate>{format_datetime(item.published_dt)}</pubDate>")
         out.append(f"<category>{_x(item.category)}</category>")
         out.append(f"<description>{_x(item_body_html(item, tags, shown))}</description>")

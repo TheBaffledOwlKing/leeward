@@ -72,6 +72,7 @@ class Settings:
     topics: list[str]
     flags: dict[str, str]
     timezone: str = "UTC"
+    cap_exempt_significance: int = 4
     feeds: list[Feed] = field(default_factory=list)
 
 
@@ -188,6 +189,7 @@ def load_settings(config_path: str, feeds_path: str) -> Settings:
         topics=topics,
         flags=flags,
         timezone=site.get("timezone", "UTC"),
+        cap_exempt_significance=int(dial.get("always_include_significance", 4)),
     )
 
     seen_ids: set[str] = set()

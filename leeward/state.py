@@ -47,16 +47,22 @@ class State:
     def has_title(self, title: str) -> bool:
         return title_key(title) in self._title_index
 
-    def add_item(self, item: Item) -> bool:
-        """Add a new item. Returns False if it's already known (same id or same story)."""
+    def add_item(self, item: Item) -> tuple[str, str]:
+        """Add a new item. Returns (outcome, detail):
+        ("added", ""), ("known", "") if this feed already gave us this item, or
+        ("duplicate", <other source name>) if another feed already has the same story."""
         if item.id in self.items:
-            return False
+            return "known", ""
         key = title_key(item.title)
-        if key in self._title_index:
-            return False
+        existing = self._title_index.get(key)
+        if existing is not None and existing in self.items:
+            other = self.items[existing]
+            if other.source_id == item.source_id:
+                return "known", ""
+            return "duplicate", other.source_name
         self.items[item.id] = item
         self._title_index[key] = item.id
-        return True
+        return "added", ""
 
     # ---------------------------------------------------------------- sources
     def source(self, source_id: str) -> dict:

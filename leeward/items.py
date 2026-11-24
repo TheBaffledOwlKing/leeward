@@ -173,7 +173,9 @@ def normalize_entry(entry, feed: Feed, now: datetime) -> Item | None:
     published = _entry_time(entry) or now
     if published > now:
         published = now
-    guid = entry.get("id") or entry.get("guid") or link
+    # Without a guid, the link alone isn't enough: APOD's newest item always links to
+    # the same "today" page, so each day's picture would look like yesterday's.
+    guid = entry.get("id") or entry.get("guid") or f"{link}|{title}"
 
     return Item(
         id=make_id(feed, guid),

@@ -25,6 +25,7 @@ class BuildReport:
     labeled: int = 0
     waiting: int = 0
     shown: dict[int, int] = field(default_factory=dict)
+    levels: dict[int, dict] = field(default_factory=dict)
     capped: bool = False
     tagger_errors: int = 0
 
@@ -55,16 +56,35 @@ def ingest(results: list[FetchResult], state: State, settings: Settings, now: da
             continue
         src["etag"], src["modified"] = res.etag, res.modified
 
-        candidates = []
+        candidates, too_old, newest = [], 0, None
         for entry in res.entries:
             item = normalize_entry(entry, res.feed, now)
-            if item and item.published_dt >= oldest:
+            if not item:
+                continue
+            newest = max(newest, item.published_dt) if newest else item.published_dt
+            if item.published_dt >= oldest:
                 candidates.append(item)
+            else:
+                too_old += 1
         candidates.sort(key=lambda i: i.published, reverse=True)
-        added = 0
+        added, duplicates, dup_sources = 0, 0, set()
         for item in candidates[: res.feed.max_items]:
-            if state.add_item(item):
+            outcome, other = state.add_item(item)
+            if outcome == "added":
                 added += 1
+            elif outcome == "duplicate":
+                duplicates += 1
+                dup_sources.add(other)
+        # What this feed looked like on its latest successful fetch; the health page
+        # uses it to explain a feed that's reachable but contributes nothing.
+        src["last_fetch"] = {
+            "entries": len(res.entries),
+            "added": added,
+            "too_old": too_old,
+            "duplicates": duplicates,
+            "duplicate_of": sorted(dup_sources)[:3],
+            "newest": iso(newest) if newest else "",
+        }
         if added:
             state.bump(res.feed.id, day, "new", added)
             src["last_new_item"] = iso(now)
@@ -141,6 +161,10 @@ def build(settings: Settings, tagger, *, state_dir: str | Path, out_dir: str | P
     }
 
     def entries_for(level: int, category: str | None = None) -> list[tuple[Item, dict | None, str]]:
+        """Visible items, newest first, with each section capped so no one section
+        crowds out the rest. Significant stories (see dial.always_include_significance)
+        never get cut by a cap; otherwise a burst of routine items could push out the
+        one story the dial was meant to let through."""
         per_cat: dict[str, int] = {}
         chosen = []
         for item in window:
@@ -148,24 +172,38 @@ def build(settings: Settings, tagger, *, state_dir: str | Path, out_dir: str | P
                 continue
             if not decisions[level][item.id].visible:
                 continue
-            cap = settings.categories[item.category].max_items
-            if per_cat.get(item.category, 0) >= cap:
-                continue
-            per_cat[item.category] = per_cat.get(item.category, 0) + 1
             tags = state.tags.get(item.id)
+            significant = bool(tags) and tags.get("significance", 0) >= settings.cap_exempt_significance
+            if not significant:
+                cap = settings.categories[item.category].max_items
+                if per_cat.get(item.category, 0) >= cap:
+                    continue
+                per_cat[item.category] = per_cat.get(item.category, 0) + 1
             chosen.append((item, tags, display_title(item, tags, settings)))
         return chosen
+
+    def summarize(entries) -> dict:
+        by_cat: dict[str, int] = {}
+        negative = 0
+        for item, tags, _ in entries:
+            by_cat[item.category] = by_cat.get(item.category, 0) + 1
+            # Count only sections the dial controls; your teams' bad news shows at every level by design.
+            if tags and tags.get("tone") == "negative" and settings.categories[item.category].mode == "dial":
+                negative += 1
+        return {"total": len(entries), "negative": negative, "by_category": by_cat}
 
     outlines = []
     for lvl, level in settings.levels.items():
         entries = entries_for(lvl)
         report.shown[lvl] = len(entries)
+        report.levels[lvl] = summarize(entries)
         path = f"feeds/digest-{lvl}.xml"
         title = f"{settings.title} · {lvl} {level.name}"
         (out / path).write_text(render.rss(
             title, f"Everything at dial level {lvl} ({level.name}).", settings.base_url,
-            _feed_url(settings, path), entries, now), encoding="utf-8")
-        outlines.append((f"{settings.title} digests", title, _feed_url(settings, path)))
+            _feed_url(settings, path), entries, now, feed_key=f"d{lvl}"), encoding="utf-8")
+        # Each level gets its own folder, so picking today's level means picking a folder.
+        outlines.append((title, title, _feed_url(settings, path)))
 
     for key, cat in settings.categories.items():
         entries = entries_for(settings.default_level, key)
@@ -173,7 +211,7 @@ def build(settings: Settings, tagger, *, state_dir: str | Path, out_dir: str | P
         title = f"{settings.title} · {cat.label}"
         (out / path).write_text(render.rss(
             title, f"{cat.label}, filtered at dial level {settings.default_level} ({default.name}).",
-            settings.base_url, _feed_url(settings, path), entries, now), encoding="utf-8")
+            settings.base_url, _feed_url(settings, path), entries, now, feed_key=key), encoding="utf-8")
         outlines.append((f"{settings.title} sections", title, _feed_url(settings, path)))
 
     (out / "subscriptions.opml").write_text(render.opml(f"{settings.title} feeds", outlines), encoding="utf-8")
